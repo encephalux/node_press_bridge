@@ -8,13 +8,13 @@
     "cms",
     "press_bridge"
   ],
-  "homepage": "https://github.com/encephalux/press_bridge#readme",
+  "homepage": "https://github.com/encephalux/node_press_bridge#readme",
   "bugs": {
-    "url": "https://github.com/encephalux/press_bridge/issues"
+    "url": "https://github.com/encephalux/node_press_bridge/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/encephalux/press_bridge.git"
+    "url": "git+https://github.com/encephalux/node_press_bridge.git"
   },
   "license": "Apache-2.0",
   "author": "encephalux",

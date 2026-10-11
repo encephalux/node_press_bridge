@@ -33,14 +33,14 @@ Pont entre un site **WordPress** et une application **Node.js** : press_bridge r
 Le paquet n'est pas publié sur npm. Installez-le depuis GitHub :
 
 ```bash
-npm install github:encephalux/press_bridge
+npm install github:encephalux/node_press_bridge
 ```
 
 ou depuis un clone local :
 
 ```bash
-git clone https://github.com/encephalux/press_bridge.git
-npm install ./press_bridge
+git clone https://github.com/encephalux/node_press_bridge.git
+npm install ./node_press_bridge
 ```
 
 Puis, dans votre application :
