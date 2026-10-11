@@ -1,0 +1,36 @@
+{
+  "name": "node_press_bridge",
+  "version": "1.0.1",
+  "description": "Pont entre WordPress et Node.js : reçoit les webhooks de publication, met en cache sur disque et en mémoire le HTML rendu des pages et articles.",
+  "keywords": [
+    "wordpress",
+    "bridge",
+    "cms",
+    "press_bridge"
+  ],
+  "homepage": "https://github.com/encephalux/press_bridge#readme",
+  "bugs": {
+    "url": "https://github.com/encephalux/press_bridge/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/encephalux/press_bridge.git"
+  },
+  "license": "Apache-2.0",
+  "author": "encephalux",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "files": [
+    "src/",
+    "docs/"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "axios": "^1.20.0"
+  }
+}
