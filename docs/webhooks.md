@@ -8,9 +8,9 @@ Les chemins sont libres ; l'exemple du [README](../README.md#démarrage-rapide) 
 
 | Méthode | Route | Chaîne |
 |---|---|---|
-| `POST` | `/press_bridge/add` | `middleware.add` → `controller.add` |
-| `POST` | `/press_bridge/update` | `middleware.update` → `controller.update` |
-| `POST` | `/press_bridge/remove` | `middleware.remove` → `controller.remove` |
+| `POST` | `/press_bridge/add` | `middleware.add` → `controllers.add` |
+| `POST` | `/press_bridge/update` | `middleware.update` → `controllers.update` |
+| `POST` | `/press_bridge/remove` | `middleware.remove` → `controllers.remove` |
 
 Le corps est en JSON (`Content-Type: application/json`). La réponse est toujours `200` avec un corps vide, que la requête soit acceptée ou non.
 

@@ -9,7 +9,7 @@
 | `src/Bridge.js` | Cœur du module : registre, cache disque, mémoire. |
 | `src/MetadataFile.js` | Lecture et écriture de `metadata.json`. |
 | `src/middleware.js` | Validation des requêtes webhook et construction de `req.data_waggon`. |
-| `src/controller.js` | Répond immédiatement à WordPress puis délègue au `Bridge`. |
+| `src/controllers.js` | Répond immédiatement à WordPress puis délègue au `Bridge`. |
 | `src/utils.js` | Journalisation (`console.log`). |
 
 ## Stockage

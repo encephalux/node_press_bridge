@@ -3,7 +3,7 @@
 Pont entre un site **WordPress** et une application **Node.js** : press_bridge reçoit les notifications de publication envoyées par WordPress (webhooks), télécharge le HTML rendu de chaque page ou article, le garde en cache sur disque et peut le conserver en mémoire pour le servir sans repasser par WordPress.
 
 ```
- WordPress ──(webhook add/update/remove)──▶ middleware ─▶ controller ─▶ Bridge
+ WordPress ──(webhook add/update/remove)──▶ middleware ─▶ controllers ─▶ Bridge
                                                                          │
      ▲                                                                   │ GET {target.url}/{slug}
      └───────────────────────────────────────────────────────────────────┘
@@ -72,7 +72,7 @@ const bridge = new press_bridge.Bridge({
     await bridge.init(); // recharge aussi les pages publiées en mémoire
 
     const mw = press_bridge.middleware(bridge);
-    const ctrl = press_bridge.controller(bridge);
+    const ctrl = press_bridge.controllers(bridge);
 
     const app = express();
     app.use(express.json());
@@ -111,7 +111,7 @@ const bridge = new press_bridge.Bridge({
 | Document | Contenu |
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | Fonctionnement interne, stockage sur disque, cycle de vie d'un contenu |
-| [docs/api.md](docs/api.md) | Référence de l'API : `Bridge`, `middleware`, `controller`, `env`, `utils` |
+| [docs/api.md](docs/api.md) | Référence de l'API : `Bridge`, `middleware`, `controllers`, `env`, `utils` |
 | [docs/webhooks.md](docs/webhooks.md) | Format des requêtes attendues et exemple d'intégration côté WordPress |
 
 ## Tests

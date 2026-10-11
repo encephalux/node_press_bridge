@@ -1,7 +1,7 @@
 # Référence de l'API
 
 ```js
-const {Bridge, middleware, controller, env, utils} = require("node_press_bridge");
+const {Bridge, middleware, controllers, env, utils} = require("node_press_bridge");
 ```
 
 ## `env`
@@ -137,7 +137,7 @@ Si la validation échoue, la requête est terminée par `res.end()` (statut `200
 
 Prérequis : `req.body` doit être parsé (`express.json()` ou équivalent). `req.data_waggon` est créé s'il n'existe pas ; s'il existe déjà, les champs y sont ajoutés.
 
-## `controller(bridge)`
+## `controllers(bridge)`
 
 Fabrique les contrôleurs `{add, update, remove}`. Chacun répond immédiatement par `res.end()`, puis appelle respectivement `bridge.register`, `bridge.update` ou `bridge.remove` avec `req.data_waggon`. Les erreurs sont ignorées.
 

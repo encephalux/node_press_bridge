@@ -6,7 +6,7 @@ if(!env.DIR)
 module.exports = {
     Bridge: require("./Bridge"),
     middleware: require("./middleware"),
-    controller: require("./controller"),
+    controllers: require("./controllers"),
     env: require("./env"),
     utils: require("./utils")
 };

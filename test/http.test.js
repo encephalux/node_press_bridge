@@ -1,7 +1,7 @@
 const {describe, test} = require("node:test");
 const assert = require("node:assert");
 const middleware = require("../src/middleware");
-const controller = require("../src/controller");
+const controllers = require("../src/controllers");
 const {page, post} = require("./helpers");
 
 const fake_bridge = (overrides = {}) => ({
@@ -91,7 +91,7 @@ describe("middleware", () => {
     });
 });
 
-describe("controller", () => {
+describe("controllers", () => {
     const actions = {add: "register", update: "update", remove: "remove"};
 
     for(const [name, method] of Object.entries(actions)) {
@@ -105,7 +105,7 @@ describe("controller", () => {
                 }
             });
 
-            controller(bridge)[name]({data_waggon}, {end: () => order.push(["end"])});
+            controllers(bridge)[name]({data_waggon}, {end: () => order.push(["end"])});
             await new Promise(setImmediate);
 
             assert.deepStrictEqual(order, [["end"], ["bridge", data_waggon]]);
