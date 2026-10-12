@@ -52,7 +52,7 @@ async function init_bridge(dir, url, options) {
 
 const page = (fields = {}) => ({
     post_type: "page",
-    id: 1,
+    id: "1",
     slug: "a-propos",
     title: "À propos",
     date: "2026-10-01T10:00:00",
@@ -64,7 +64,7 @@ const page = (fields = {}) => ({
 
 const post = (fields = {}) => ({
     post_type: "post",
-    id: 2,
+    id: "2",
     slug: "premier-article",
     title: "Premier article",
     excerpt: "Résumé",

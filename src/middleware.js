@@ -1,6 +1,8 @@
+const valid_id = id => typeof id === "string" && /^[1-9]\d*$/.test(id);
+
 module.exports = bridge => {
     function check_fields(body) {
-        return (body.id && /^[1-9]\d*$/.test(String(body.id)))
+        return valid_id(body.id)
             && body.post_type
             && bridge.options.post_types.includes(body.post_type)
             && (body.slug === "" || body.slug)
@@ -15,7 +17,7 @@ module.exports = bridge => {
     function build_data_waggon(req, body) {
         req.data_waggon = Object.assign(req.data_waggon || {}, {
             post_type: body.post_type,
-            id: String(body.id),
+            id: body.id,
             slug: body.slug,
             title: body.title,
             date: body.date,
@@ -43,7 +45,7 @@ module.exports = bridge => {
 
     const remove = (req, res, next) => {
         // { Check fields }
-        if(!req.body.id || !req.body.post_type) return res.end();
+        if(!valid_id(req.body.id) || !req.body.post_type) return res.end();
 
         req.data_waggon = Object.assign(req.data_waggon || {}, {
             post_type: req.body.post_type,

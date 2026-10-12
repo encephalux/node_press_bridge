@@ -28,7 +28,7 @@ describe("middleware", () => {
 
                 assert.ok(next_called);
                 const {excerpt, ...expected} = page();
-                assert.deepStrictEqual(req.data_waggon, {...expected, id: "1"});
+                assert.deepStrictEqual(req.data_waggon, expected);
             });
 
             test("transmet l'extrait d'un article", () => {
@@ -46,24 +46,24 @@ describe("middleware", () => {
                 assert.ok(run(mw[name], page({slug: "", thumbnail: ""})).next_called);
             });
 
-            test("accepte un id numérique ou textuel et le normalise en chaîne", () => {
-                for(const id of [42, "42"]) {
-                    const {req, next_called} = run(mw[name], page({id}));
-                    assert.ok(next_called);
-                    assert.strictEqual(req.data_waggon.id, "42");
-                }
+            test("accepte un id textuel", () => {
+                const {req, next_called} = run(mw[name], page({id: "42"}));
+                assert.ok(next_called);
+                assert.strictEqual(req.data_waggon.id, "42");
             });
 
             const invalid = {
                 "id manquant": page({id: undefined}),
-                "id nul": page({id: 0}),
-                "id négatif": page({id: -1}),
-                "id décimal": page({id: 1.5}),
+                "id numérique": page({id: 42}),
+                "id nul": page({id: "0"}),
+                "id négatif": page({id: "-1"}),
+                "id décimal": page({id: "1.5"}),
                 "id non numérique": page({id: "__proto__"}),
                 "id hexadécimal": page({id: "0x1A"}),
                 "id entouré d'espaces": page({id: " 7 "}),
                 "id avec zéro initial": page({id: "07"}),
                 "id booléen": page({id: true}),
+                "id tableau": page({id: ["3"]}),
                 "type non géré": page({post_type: "product"}),
                 "titre vide": page({title: ""}),
                 "slug absent": page({slug: undefined}),
@@ -87,14 +87,24 @@ describe("middleware", () => {
             const {req, next_called} = run(mw.remove, page());
 
             assert.ok(next_called);
-            assert.deepStrictEqual(req.data_waggon, {post_type: "page", id: 1});
+            assert.deepStrictEqual(req.data_waggon, {post_type: "page", id: "1"});
         });
 
-        test("termine la requête si l'id manque", () => {
-            const {ended, next_called} = run(mw.remove, {post_type: "page"});
-            assert.ok(ended);
-            assert.ok(!next_called);
-        });
+        const invalid = {
+            "l'id manque": {post_type: "page"},
+            "l'id est numérique": {post_type: "page", id: 1},
+            "l'id n'est pas canonique": {post_type: "page", id: "07"},
+            "l'id est un tableau": {post_type: "page", id: ["1"]},
+            "le type manque": {id: "1"}
+        };
+
+        for(const [label, body] of Object.entries(invalid)) {
+            test(`termine la requête si ${label}`, () => {
+                const {ended, next_called} = run(mw.remove, body);
+                assert.ok(ended);
+                assert.ok(!next_called);
+            });
+        }
     });
 });
 

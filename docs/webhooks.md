@@ -20,7 +20,7 @@ Le corps est en JSON (`Content-Type: application/json`). La réponse est toujour
 
 ```json
 {
-  "id": 57,
+  "id": "57",
   "post_type": "post",
   "slug": "premier-article",
   "title": "Premier article",
@@ -34,13 +34,13 @@ Le corps est en JSON (`Content-Type: application/json`). La réponse est toujour
 
 - `excerpt` est requis sauf pour `post_type: "page"`.
 - `slug`, `thumbnail` et `excerpt` peuvent valoir `""`, mais doivent être présents.
-- `id` doit être un entier strictement positif (nombre ou chaîne) ; sinon la requête est ignorée.
+- `id` doit être une **chaîne** contenant un entier strictement positif en écriture décimale, sans zéro initial ni espace (`"57"`). Un nombre (`57`) est refusé : l'extension doit convertir `$post->ID` (voir l'exemple ci-dessous). Sinon la requête est ignorée.
 - Seuls les contenus dont `status` vaut exactement `"published"` sont mis en cache, pages comme articles. WordPress utilise nativement `"publish"` : l'extension doit convertir la valeur (voir l'exemple ci-dessous).
 
 ### `remove`
 
 ```json
-{ "id": 57, "post_type": "post" }
+{ "id": "57", "post_type": "post" }
 ```
 
 ## Exemple côté WordPress
@@ -65,7 +65,7 @@ function press_bridge_send($action, array $body) {
 
 function press_bridge_payload(WP_Post $post) {
     return [
-        'id'        => $post->ID,
+        'id'        => (string) $post->ID,
         'post_type' => $post->post_type,
         'slug'      => $post->post_name,
         'title'     => get_the_title($post),
@@ -85,7 +85,7 @@ add_action('wp_after_insert_post', function ($post_id, $post, $update) {
 
 add_action('before_delete_post', function ($post_id, $post) {
     if (!in_array($post->post_type, ['page', 'post'], true)) return;
-    press_bridge_send('remove', ['id' => $post_id, 'post_type' => $post->post_type]);
+    press_bridge_send('remove', ['id' => (string) $post_id, 'post_type' => $post->post_type]);
 }, 10, 2);
 ```
 
