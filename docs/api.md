@@ -130,7 +130,7 @@ const mw = middleware(bridge); // {add, update, remove}
 
 | Middleware | Validation |
 |---|---|
-| `add`, `update` | `id` entier strictement positif (nombre ou chaîne) ; `post_type` accepté par le bridge ; `title`, `date`, `author`, `status` non vides ; `slug` et `thumbnail` présents (`""` accepté) ; `excerpt` présent sauf pour `page`. |
+| `add`, `update` | `id` entier strictement positif, nombre ou chaîne en écriture décimale sans zéro initial ni espace (`42` ou `"42"`), transmis sous forme de chaîne ; `post_type` accepté par le bridge ; `title`, `date`, `author`, `status` non vides ; `slug` et `thumbnail` présents (`""` accepté) ; `excerpt` présent sauf pour `page`. |
 | `remove` | `id` et `post_type` non vides. |
 
 Si la validation échoue, la requête est terminée par `res.end()` (statut `200`, corps vide) et la chaîne s'arrête.

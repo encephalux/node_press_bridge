@@ -1,6 +1,6 @@
 module.exports = bridge => {
     function check_fields(body) {
-        return (body.id && Number.isInteger(Number(body.id)) && Number(body.id) > 0)
+        return (body.id && /^[1-9]\d*$/.test(String(body.id)))
             && body.post_type
             && bridge.options.post_types.includes(body.post_type)
             && (body.slug === "" || body.slug)
@@ -15,7 +15,7 @@ module.exports = bridge => {
     function build_data_waggon(req, body) {
         req.data_waggon = Object.assign(req.data_waggon || {}, {
             post_type: body.post_type,
-            id: body.id,
+            id: String(body.id),
             slug: body.slug,
             title: body.title,
             date: body.date,

@@ -28,7 +28,7 @@ describe("middleware", () => {
 
                 assert.ok(next_called);
                 const {excerpt, ...expected} = page();
-                assert.deepStrictEqual(req.data_waggon, expected);
+                assert.deepStrictEqual(req.data_waggon, {...expected, id: "1"});
             });
 
             test("transmet l'extrait d'un article", () => {
@@ -39,16 +39,19 @@ describe("middleware", () => {
             test("complète un req.data_waggon existant", () => {
                 const {req} = run(mw[name], page(), {data_waggon: {extra: 1}});
                 assert.strictEqual(req.data_waggon.extra, 1);
-                assert.strictEqual(req.data_waggon.id, 1);
+                assert.strictEqual(req.data_waggon.id, "1");
             });
 
             test("accepte un slug et une miniature vides", () => {
                 assert.ok(run(mw[name], page({slug: "", thumbnail: ""})).next_called);
             });
 
-            test("accepte un id numérique ou textuel", () => {
-                assert.ok(run(mw[name], page({id: 42})).next_called);
-                assert.ok(run(mw[name], page({id: "42"})).next_called);
+            test("accepte un id numérique ou textuel et le normalise en chaîne", () => {
+                for(const id of [42, "42"]) {
+                    const {req, next_called} = run(mw[name], page({id}));
+                    assert.ok(next_called);
+                    assert.strictEqual(req.data_waggon.id, "42");
+                }
             });
 
             const invalid = {
@@ -57,6 +60,10 @@ describe("middleware", () => {
                 "id négatif": page({id: -1}),
                 "id décimal": page({id: 1.5}),
                 "id non numérique": page({id: "__proto__"}),
+                "id hexadécimal": page({id: "0x1A"}),
+                "id entouré d'espaces": page({id: " 7 "}),
+                "id avec zéro initial": page({id: "07"}),
+                "id booléen": page({id: true}),
                 "type non géré": page({post_type: "product"}),
                 "titre vide": page({title: ""}),
                 "slug absent": page({slug: undefined}),
