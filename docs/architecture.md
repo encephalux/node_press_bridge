@@ -90,6 +90,7 @@ Pour `null` ou une valeur absente, `get_by_id`/`get_by_slug` relisent le disque 
 4. Chargement en mémoire des contenus publiés des types de `types_to_buffer`. Un fichier manquant est journalisé (`BUFFERING FAILED ON INIT`) sans bloquer le démarrage.
 5. Sauvegarde du registre. En cas d'échec à l'une de ces étapes, `metadata.json` est refermé et l'erreur est propagée.
 6. `bridge.initialized` passe à `true`. Les autres méthodes lèvent `NOT_INITIALIZED` avant cette étape.
+7. L'événement `initialized` est déclenché.
 
 ### Création (webhook `add` → `register`)
 
@@ -97,16 +98,19 @@ Pour `null` ou une valeur absente, `get_by_id`/`get_by_slug` relisent le disque 
 2. Le contrôleur répond tout de suite (`res.end()`), puis appelle `bridge.register()`.
 3. Le contenu est ajouté au registre et le registre est sauvegardé.
 4. Si `status === "published"`, le HTML est téléchargé et écrit sur disque, puis chargé en mémoire si le type figure dans `types_to_buffer`.
+5. L'événement `registered` est déclenché, même si l'étape 4 a échoué.
 
 ### Modification (webhook `update` → `update`)
 
-Seuls les champs fournis sont remplacés, puis le registre est sauvegardé. Si le contenu est (ou devient) publié, son HTML est retéléchargé et remis en mémoire ; la promesse se résout après cette étape. Un contenu inconnu du registre est ignoré (avec un message dans les logs).
+Seuls les champs fournis sont remplacés, puis le registre est sauvegardé. Si le contenu est (ou devient) publié, son HTML est retéléchargé et remis en mémoire ; l'événement `updated` est déclenché et la promesse se résout après cette étape. Un contenu inconnu du registre est ignoré (avec un message dans les logs), sans événement.
 
 Quand un contenu est dépublié, il reste au registre et n'est plus servi (`UNPUBLISHED_POST`), mais son fichier HTML et son entrée en mémoire ne sont pas supprimés.
 
 ### Suppression (webhook `remove` → `remove`)
 
-L'entrée est retirée de la mémoire et du registre, le registre est sauvegardé, puis le fichier HTML est supprimé (un fichier absent est ignoré).
+L'entrée est retirée de la mémoire et du registre, le registre est sauvegardé, puis le fichier HTML est supprimé (un fichier absent est ignoré) et l'événement `removed` est déclenché.
+
+Un `remove` reçu pendant le téléchargement lancé par un `register`/`update` du même contenu peut laisser un fichier HTML orphelin, et `registered`/`updated` est alors déclenché après `removed`, pour un contenu qui n'est plus au registre.
 
 ### Lecture (`get_by_id`, `get_by_slug`)
 
@@ -116,7 +120,7 @@ L'entrée est retirée de la mémoire et du registre, le registre est sauvegard�
 
 ### Rafraîchissement (`bridge.update_cache()`)
 
-Retélécharge un par un tous les contenus publiés et remet en mémoire ceux des types de `types_to_buffer`. Un échec est journalisé et n'interrompt pas la boucle.
+Retélécharge un par un tous les contenus publiés et remet en mémoire ceux des types de `types_to_buffer`. Un échec est journalisé et n'interrompt pas la boucle. L'événement `cache_updated` est déclenché à la fin.
 
 ### Libération (`bridge.destroy()`)
 
@@ -124,6 +128,11 @@ Retélécharge un par un tous les contenus publiés et remet en mémoire ceux de
 2. Le bridge attend la fin des opérations d'écriture en cours, suivies dans `bridge.pending`.
 3. Le registre est sauvegardé, `metadata.json` est fermé (même si la sauvegarde échoue) et la mémoire est vidée.
 4. `bridge.initialized` repasse à `false` ; un nouvel appel à `init()` recharge le bridge.
+5. L'événement `destroyed` est déclenché, même si la sauvegarde a échoué.
+
+## Événements
+
+`bridge.on(event, listener)` permet de réagir aux étapes ci-dessus (`initialized`, `registered`, `updated`, `removed`, `cache_updated`, `destroyed`). Les écouteurs sont appelés de façon synchrone par `_trigger()`, à la fin de l'opération et avant la résolution de sa promesse ; leurs erreurs, synchrones ou asynchrones, sont journalisées et isolées de l'opération. Détails dans [api.md](api.md#événements).
 
 ## Gestion des erreurs
 

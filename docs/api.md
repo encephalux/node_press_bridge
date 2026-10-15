@@ -37,6 +37,8 @@ Objet de configuration partagé par tous les modules.
 | `initialized` | `true` entre la fin de `init()` et `destroy()`. |
 | `pending` | `Set` des promesses d'écriture en cours. |
 | `destroying` | Promesse de la destruction en cours, ou `null`. |
+| `events` | Noms des événements acceptés par `on()` / `off()`. |
+| `listeners` | Écouteurs inscrits : `{[event]: Function[]}`. |
 
 ### `async init()`
 
@@ -111,6 +113,31 @@ Retélécharge un par un tous les contenus publiés et remet en mémoire ceux de
 
 Erreurs : `NOT_INITIALIZED`, `DESTROYING`.
 
+### Événements
+
+#### `on(event, listener)` / `off(event, listener)`
+
+`on` inscrit `listener` pour `event` ; `off` retire une inscription de `listener` (sans effet s'il n'est pas inscrit). Un même écouteur inscrit deux fois est appelé deux fois. Les deux lèvent `UNKNOWN_EVENT` (de façon synchrone) si `event` ne figure pas dans `bridge.events`. Les écouteurs sont conservés après `destroy()` et un nouvel `init()`.
+
+```js
+bridge.on("updated", ({post_type, id, post}) => {
+    if(post_type === "post") sitemap.invalidate();
+});
+```
+
+| Événement | Argument | Déclenché |
+|---|---|---|
+| `initialized` | le bridge | À la fin d'un `init()` réussi, une fois `initialized` à `true`. |
+| `registered` | `{post_type, id, post}` | À la fin de `register()`, après le téléchargement et la mise en mémoire (même si ceux-ci ont échoué). |
+| `updated` | `{post_type, id, post}` | À la fin de `update()`, dans les mêmes conditions. Pas déclenché pour un contenu non enregistré. |
+| `removed` | `{post_type, id, post}` | À la fin de `remove()`, après la suppression du fichier HTML. Pas déclenché pour un contenu non enregistré. |
+| `cache_updated` | le bridge | À la fin de `update_cache()`, même si certains contenus ont échoué. |
+| `destroyed` | le bridge | À la fin de `destroy()`, même si la sauvegarde finale a échoué. `initialized` vaut alors `false` et `destroying` `null`. |
+
+`post` est l'entrée du registre (voir [architecture.md](architecture.md#metadatajson)) : pour `registered` et `updated`, c'est l'objet du registre lui-même, à ne pas modifier. Un appel refusé (`NOT_INITIALIZED`, `UNSUPPORTED_POST_TYPE`, `DESTROYING`…) ne déclenche rien.
+
+Les écouteurs sont appelés dans leur ordre d'inscription, de façon synchrone, avant la résolution de la promesse de l'opération. Leur valeur de retour est ignorée : l'opération n'attend pas un écouteur `async`. Une exception ou une promesse rejetée est journalisée (`EVENT LISTENER ERROR`) et ne fait échouer ni l'opération ni les autres écouteurs. Un écouteur peut appeler `off()` sur lui-même pendant l'appel sans perturber les suivants.
+
 ### Méthodes utilitaires
 
 | Méthode | Description |
@@ -118,7 +145,7 @@ Erreurs : `NOT_INITIALIZED`, `DESTROYING`.
 | `get_post_type_dir(post_type)` | Répertoire du cache d'un type. |
 | `get_post_file_path(post_type, post)` | Chemin du fichier HTML d'une entrée du registre. |
 
-Les méthodes préfixées par `_` (`_download`, `_buffer`, `_get`) sont internes : elles ne vérifient ni l'initialisation ni le type, et ne sont pas suivies par `destroy()`.
+Les méthodes préfixées par `_` (`_download`, `_buffer`, `_get`, `_trigger`) sont internes : elles ne vérifient ni l'initialisation ni le type, et ne sont pas suivies par `destroy()`.
 
 ## `middleware(bridge)`
 
@@ -169,6 +196,7 @@ Utilisé par le `Bridge` ; rarement manipulé directement.
 | `CACHED_READ_ERROR` | Le fichier HTML d'un contenu publié est illisible ou absent (téléchargement échoué, par exemple). |
 | `DESTROYING` | Opération d'écriture lancée pendant `destroy()`. |
 | `METADATA_CLOSED` | `MetadataFile.save()` appelé alors que `metadata.json` n'est pas ouvert. |
+| `UNKNOWN_EVENT` | `on()` / `off()` avec un événement absent de `bridge.events`. |
 
 ## Messages de log
 
@@ -186,3 +214,5 @@ Utilisé par le `Bridge` ; rarement manipulé directement.
 | `DOWNLOAD FAILED ON CACHE UPDATING` / `BUFFERING FAILED ON CACHE UPDATING` | Échec pendant `update_cache()`. |
 | `ERROR ON METADATA PARSING` | `metadata.json` illisible (JSON invalide). |
 | `METADATA FILE WRITING FAILED` | Sauvegarde de `metadata.json` en échec. |
+| `UNKNOWN EVENT (<event>)` | `on()` / `off()` refusé. |
+| `EVENT LISTENER ERROR` | Un écouteur a levé une exception ou rejeté sa promesse. |

@@ -21,6 +21,32 @@ class Bridge {
         this.initialized = !1;
         this.pending = new Set();
         this.destroying = null;
+        this.events = ["registered", "updated", "removed", "cache_updated", "initialized", "destroyed"];
+        this.listeners = Object.fromEntries(this.events.map(e => [e, []]));
+    }
+
+    on(event, listener) {
+        if(!this.events.includes(event)) {
+            utils.log({message: `UNKNOWN EVENT (${event})`, res: event});
+            throw new Error("UNKNOWN_EVENT");
+        }
+        this.listeners[event].push(listener);
+    }
+
+    off(event, listener) {
+        if(!this.events.includes(event)) {
+            utils.log({message: `UNKNOWN EVENT (${event})`, res: event});
+            throw new Error("UNKNOWN_EVENT");
+        }
+        const idx = this.listeners[event].findIndex(_ => _ === listener);
+        if(idx >= 0) this.listeners[event].splice(idx, 1);
+    }
+
+    _trigger(event, arg) {
+        for(const _ of [...this.listeners[event]]) {
+            (async () => _(arg))()
+                .catch(err => utils.log({message: "EVENT LISTENER ERROR", res: {event}, reason: err}));
+        }
     }
 
     get metadata() {
@@ -63,6 +89,7 @@ class Bridge {
         }
 
         this.initialized = !0;
+        this._trigger("initialized", this);
     }
 
     async destroy() {
@@ -80,14 +107,18 @@ class Bridge {
                 await this.metadata_file.close();
                 this.data = {};
             }
-        })().finally(() => this.destroying = null);
+        })().finally(() => {
+            this.destroying = null;
+            this._trigger("destroyed", this);
+        });
 
         return this.destroying;
     }
 
     // { TODO: a remove() received while this download is running (register, update, update_cache)
     //   leaves an orphan HTML file. Check that this.metadata[post_type][id] still exists after the
-    //   rename and delete the file otherwise. }
+    //   rename and delete the file otherwise. The same race makes register()/update() trigger
+    //   "registered"/"updated" after "removed", for a post that no longer exists. }
     async _download(post_type, post, options = {}) {
         const post_file = this.get_post_file_path(post_type, post);
         const tmp = `${post_file}.${crypto.randomUUID()}.tmp`;
@@ -130,7 +161,7 @@ class Bridge {
             throw new Error("ALREADY_REGISTERED_POST");
         }
 
-        this.metadata[post_type][id] = {
+        const post = this.metadata[post_type][id] = {
             uuid: crypto.randomUUID(),
             slug,
             title,
@@ -154,6 +185,8 @@ class Bridge {
                     }
                 })
                 .catch(() => null);
+
+        this._trigger("registered", {post_type, id, post});
     }
 
     async update({post_type, id, slug, title, excerpt, date, author, thumbnail, status}) {
@@ -188,6 +221,8 @@ class Bridge {
                     }
                 })
                 .catch(err => null);
+
+        this._trigger("updated", {post_type, id, post: data});
     }
 
     async remove({post_type, id}) {
@@ -211,6 +246,8 @@ class Bridge {
 
         await fs_p.unlink(this.get_post_file_path(post_type, post))
             .catch(err => err.code !== "ENOENT" && utils.log({message: "FAILED TO REMOVE POST HTML FILE", res: {post_type, id, ...post}, reason: err}));
+
+        this._trigger("removed", {post_type, id, post});
     }
 
     async _get(post_type, id) {
@@ -300,6 +337,8 @@ class Bridge {
                 }
             }
         }
+
+        this._trigger("cache_updated", this);
     }
 }
 

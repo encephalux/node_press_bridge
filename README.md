@@ -19,6 +19,7 @@ Pont entre un site **WordPress** et une application **Node.js** : press_bridge r
 - Cache disque du HTML rendu des contenus publiés (`status: "published"`), écrit de façon atomique (fichier temporaire puis `rename`).
 - Mise en mémoire facultative par type de contenu (`types_to_buffer`, par défaut les pages), rechargée automatiquement au démarrage.
 - Lecture par identifiant ou par slug : `get_by_id(type, id)`, `get_by_slug(type, slug)`.
+- Événements (`bridge.on(...)`) à chaque étape : `initialized`, `registered`, `updated`, `removed`, `cache_updated`, `destroyed`.
 - Middleware et contrôleurs prêts à brancher sur des routes Express.
 - Arrêt propre : `destroy()` attend les opérations en cours avant de fermer le registre.
 
@@ -125,7 +126,7 @@ Les tests utilisent le runner intégré à Node (`node:test`) et ne nécessitent
 | Fichier | Portée |
 |---|---|
 | `test/MetadataFile.test.js` | Création, lecture et réécriture de `metadata.json` |
-| `test/Bridge.test.js` | Enregistrement, mise à jour, suppression, lecture, cache, mémoire, redémarrage, destruction |
+| `test/Bridge.test.js` | Enregistrement, mise à jour, suppression, lecture, cache, mémoire, redémarrage, destruction, événements |
 | `test/http.test.js` | Validation du middleware (dont le format de l'`id`) et ordre d'exécution des contrôleurs |
 
 ## Licence

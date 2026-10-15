@@ -375,6 +375,139 @@ describe("Bridge", () => {
         });
     });
 
+    describe("événements", () => {
+        const record = (...events) => {
+            const calls = [];
+            for(const event of events) bridge.on(event, arg => calls.push([event, arg]));
+            return calls;
+        };
+
+        test("on() et off() refusent un événement inconnu", () => {
+            assert.throws(() => bridge.on("deleted", () => {}), /UNKNOWN_EVENT/);
+            assert.throws(() => bridge.off("deleted", () => {}), /UNKNOWN_EVENT/);
+        });
+
+        test("initialized et destroyed reçoivent le bridge", async () => {
+            const calls = record("initialized", "destroyed");
+            await bridge.destroy();
+            await bridge.init();
+
+            assert.deepStrictEqual(calls, [["destroyed", bridge], ["initialized", bridge]]);
+        });
+
+        test("destroyed est déclenché une fois la destruction terminée, même en échec", async () => {
+            let state;
+            bridge.on("destroyed", () => state = {initialized: bridge.initialized, destroying: bridge.destroying});
+            bridge.metadata_file.save = () => Promise.reject(new Error("DISK_FULL"));
+
+            await assert.rejects(bridge.destroy(), /DISK_FULL/);
+            assert.deepStrictEqual(state, {initialized: false, destroying: null});
+        });
+
+        test("registered, updated et removed reçoivent le contenu après traitement", async () => {
+            const calls = [];
+            for(const event of ["registered", "updated", "removed"])
+                bridge.on(event, ({post_type, id, post}) => calls.push([event, post_type, id, post.title, bridge.data.page[1]]));
+
+            await bridge.register(page());
+            wp.version = 2;
+            await bridge.update({post_type: "page", id: "1", title: "Modifié"});
+            await bridge.remove({post_type: "page", id: "1"});
+
+            assert.deepStrictEqual(calls, [
+                ["registered", "page", "1", "À propos", "<html>1:a-propos</html>"],
+                ["updated", "page", "1", "Modifié", "<html>2:a-propos</html>"],
+                ["removed", "page", "1", "Modifié", undefined]
+            ]);
+        });
+
+        test("registered est déclenché même si le téléchargement échoue", async () => {
+            const calls = record("registered");
+            wp.missing.add("a-propos");
+            await bridge.register(page());
+
+            assert.strictEqual(calls.length, 1);
+        });
+
+        test("rien n'est déclenché pour un appel refusé ou ignoré", async () => {
+            const calls = record("registered", "updated", "removed");
+            await bridge.register(page());
+            calls.length = 0;
+
+            await assert.rejects(bridge.register(page()), /ALREADY_REGISTERED_POST/);
+            await assert.rejects(bridge.register(page({post_type: "product"})), /UNSUPPORTED_POST_TYPE/);
+            await bridge.update(page({id: "99"}));
+            await bridge.remove({post_type: "page", id: "99"});
+
+            assert.deepStrictEqual(calls, []);
+        });
+
+        test("cache_updated est déclenché à la fin de update_cache()", async () => {
+            await bridge.register(page());
+            let content;
+            bridge.on("cache_updated", b => content = b.data.page[1]);
+            wp.version = 2;
+            await bridge.update_cache();
+
+            assert.strictEqual(content, "<html>2:a-propos</html>");
+        });
+
+        test("off() retire l'écouteur", async () => {
+            const calls = [];
+            const listener = () => calls.push(1);
+            bridge.on("registered", listener);
+            bridge.off("registered", listener);
+            bridge.off("registered", listener);
+            await bridge.register(page());
+
+            assert.deepStrictEqual(calls, []);
+        });
+
+        test("un écouteur qui se retire ne fait pas sauter le suivant", async () => {
+            const calls = [];
+            const once = () => {
+                calls.push("once");
+                bridge.off("registered", once);
+            };
+            bridge.on("registered", once);
+            bridge.on("registered", () => calls.push("next"));
+
+            await bridge.register(page());
+            await bridge.register(post());
+            assert.deepStrictEqual(calls, ["once", "next", "next"]);
+        });
+
+        test("les erreurs des écouteurs sont journalisées sans faire échouer l'opération", async () => {
+            const utils = require("../src/utils");
+            const log = utils.log;
+            const logged = [];
+            utils.log = data => logged.push(data);
+
+            try {
+                const calls = [];
+                bridge.on("registered", () => {
+                    calls.push("sync");
+                    throw new Error("SYNC");
+                });
+                bridge.on("registered", async () => {
+                    calls.push("async");
+                    throw new Error("ASYNC");
+                });
+                bridge.on("registered", () => calls.push("last"));
+
+                await bridge.register(page());
+                await new Promise(resolve => setImmediate(resolve));
+
+                assert.deepStrictEqual(calls, ["sync", "async", "last"]);
+                assert.ok(bridge.metadata.page[1]);
+                const errors = logged.filter(_ => _.message === "EVENT LISTENER ERROR");
+                assert.deepStrictEqual(errors.map(_ => [_.res.event, _.reason.message]), [["registered", "SYNC"], ["registered", "ASYNC"]]);
+            } finally {
+                utils.log = log;
+            }
+        });
+    });
+
     test("respecte les options post_types et types_to_buffer", async () => {
         await bridge.destroy();
         bridge = await init_bridge(await make_dir(), wp.url, {post_types: ["post"], types_to_buffer: ["post"]});
